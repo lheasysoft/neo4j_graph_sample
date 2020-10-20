@@ -1,12 +1,14 @@
 
 import * as neo4j from 'neo4j-driver';
 import { PersonModel } from '@/typescript/models/PersonModel';
+import { BaseModel } from '@/typescript/abstract/BaseModel';
+import { LocationModel } from '@/typescript/models/LocationModel';
+import { ImageModel } from '@/typescript/models/ImageModel';
 
 export class NeoBase {
   private URL = 'neo4j://localhost';
   private USERNAME = 'neo4j';
   private PASSWORD = '1234';
-  private DATABASE = 'ImageLink';
 
   private _driver: neo4j.Driver;
 
@@ -21,40 +23,44 @@ export class NeoBase {
   public getPersonen(): PersonModel[] {
     const session = this._driver.session({
       defaultAccessMode: neo4j.session.READ
-    })
+    });
 
+    const personen: PersonModel[] = [];
     session
-      .run(`MATCH p = (:${PersonModel.Label}) RETURN NODES(p)`)
+      .run(`MATCH (p:${PersonModel.Label}) RETURN p as person`)
       .then(result => {
-        // result.records.forEach(record => {
         result.records.forEach(record => {
-          console.log('Person: ' + record);
-          console.log('Name: ' + record.get('name'))
+          const p = record.get('person');
+          personen.push(PersonModel.fromNeo(p));
+          // console.log('Person: ');
+          // console.log(p);
+          // console.log('Name: ' + p.properties.name);
         })
       })
       .catch(error => {
-        console.log(error)
+        console.warn(error)
       })
       .then(() => session.close())
 
-    return [];
+    return personen;
   }
 
-  public createPerson(person: PersonModel): PersonModel | null {
+  public createPerson(person: PersonModel): boolean {
     const session = this._driver.session({
-      // database: this.DATABASE,
       defaultAccessMode: neo4j.session.WRITE
     });
 
+    let success = false;
     session
-      .run(`MERGE (p:${PersonModel.Label} {name : $nameParam}) RETURN p`, {
+      .run(`MERGE (p:${PersonModel.Label} {name : $nameParam}) RETURN p as person`, {
         nameParam: person.Name
       })
       .then(result => {
         result.records.forEach(record => {
+          success = true;
+          const personNeu = record.get('person');
           console.log('Person erstellt.');
-          console.log(record);
-          console.log('Name: ' + record.get('name'));
+          console.log('Name: ' + personNeu.properties.name);
         })
       })
       .catch(error => {
@@ -64,14 +70,55 @@ export class NeoBase {
         () => session.close()
       );
 
-    return null;
+    return success;
+  }
+
+  public powerSearchName(search: string): BaseModel[] {
+    const session = this._driver.session({
+      defaultAccessMode: neo4j.session.READ
+    });
+
+    const nodes: BaseModel[] = [];
+    session
+      .run('MATCH (p) WHERE p.name =~ $regex RETURN p as node', {
+        regex: `(?i).*${search}.*`
+      })
+      .then(result => {
+        result.records.forEach(record => {
+          const node = record.get('node');
+          switch (node.labels[0]) {
+            case PersonModel.Label:
+              nodes.push(PersonModel.fromNeo(node));
+              break;
+            case LocationModel.Label:
+              nodes.push(LocationModel.fromNeo(node));
+              break;
+            case ImageModel.Label:
+              nodes.push(ImageModel.fromNeo(node));
+              break;
+            default:
+              break;
+          }
+          // personen.push(PersonModel.fromNeo(node));
+          // console.log('Person: ');
+          // console.log(node);
+          // console.log('Name: ' + node.properties.name);
+        })
+      })
+      .catch(error => {
+        console.warn(error)
+      })
+      .then(() => session.close())
+
+    return nodes;
   }
 }
 
 export function testNeo4J() {
   const neo = new NeoBase();
-  neo.getPersonen();
 
-  // const person = new PersonModel('Thomas');
-  // neo.createPerson(person);
+  // neo.getPersonen();
+
+  const person = new PersonModel('Wolfgang');
+  neo.createPerson(person);
 }

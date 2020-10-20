@@ -1,15 +1,25 @@
+import { BaseModel } from '@/typescript/abstract/BaseModel';
+import { NeoResult } from '@/typescript/abstract/NeoResult';
 
-export class ImageModel {
-  public static Label = "Image";
+export class ImageModel implements BaseModel {
+  public static Label = 'Image';
+  public get Type() { return ImageModel.Label };
+  private _name: string;
+  public get Name() { return this._name };
   private _fileSource: string;
-  public get FileSource() {return this._fileSource};
+  public get FileSource() { return this._fileSource };
 
-  constructor(fileSource: string) {
+  constructor(name: string, fileSource: string) {
+    this._name = name;
     this._fileSource = fileSource;
   }
 
-  static fromNeo(neoResult: any): ImageModel{
-    return new ImageModel(neoResult.src);
+  static fromNeo(neoImageResult: NeoResult<NeoResultImage>): ImageModel {
+    return new ImageModel(neoImageResult.properties.name, neoImageResult.properties.src);
   }
+}
 
+interface NeoResultImage {
+  name: string;
+  src: string;
 }

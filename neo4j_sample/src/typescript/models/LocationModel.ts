@@ -1,22 +1,31 @@
+import { BaseModel } from '@/typescript/abstract/BaseModel';
+import { NeoResult } from '@/typescript/abstract/NeoResult';
 
-export class LocationModel {
-  public static Label = "Location";
+export class LocationModel implements BaseModel {
+  public static Label = 'Location';
+  public get Type() { return LocationModel.Label };
   private _locationName: string;
-  public get LocationName() {return this._locationName};
-  public readonly UtfLat: number;
-  public readonly UtfLong: number;
+  public get Name() { return this._locationName };
+  public readonly UtmLat: number;
+  public readonly UtmLong: number;
 
-  constructor(locationName: string, utfLat: number, utfLong: number) {
+  constructor(locationName: string, utmLat: number, utmLong: number) {
     this._locationName = locationName;
-    this.UtfLat = utfLat;
-    this.UtfLong = utfLong;
+    this.UtmLat = utmLat;
+    this.UtmLong = utmLong;
   }
 
   public setName(locationName: string) {
     this._locationName = locationName;
   }
 
-  static fromNeo(neoResult: any): LocationModel {
-    return new LocationModel(neoResult.name, neoResult.lat, neoResult.long);
+  static fromNeo(neoLocationResult: NeoResult<NeoResultLocation>): LocationModel {
+    const props = neoLocationResult.properties;
+    return new LocationModel(props.name, props.loc.x, props.loc.y);
   }
+}
+
+interface NeoResultLocation {
+  name: string;
+  loc: any;
 }
