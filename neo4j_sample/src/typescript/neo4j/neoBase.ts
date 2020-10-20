@@ -79,6 +79,12 @@ export class NeoBase {
     });
 
     const nodes: BaseModel[] = [];
+
+    search = search.trim();
+    if (search.length < 1) {
+      return nodes;
+    }
+
     session
       .run('MATCH (p) WHERE p.name =~ $regex RETURN p as node', {
         regex: `(?i).*${search}.*`
@@ -112,13 +118,4 @@ export class NeoBase {
 
     return nodes;
   }
-}
-
-export function testNeo4J() {
-  const neo = new NeoBase();
-
-  // neo.getPersonen();
-
-  const person = new PersonModel('Wolfgang');
-  neo.createPerson(person);
 }
