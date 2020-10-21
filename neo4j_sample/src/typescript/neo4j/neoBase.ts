@@ -118,4 +118,7 @@ export class NeoBase {
 
     return nodes;
   }
+
+  // public getAllRelatedNodes() {
+  // }
 }
